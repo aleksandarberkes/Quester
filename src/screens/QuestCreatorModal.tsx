@@ -6,20 +6,16 @@ import {
   Text,
   View,
 } from 'react-native';
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {
-  CommonActions,
-  StackActions,
-  useNavigation,
-} from '@react-navigation/native';
-import {QuestType, RootStackParams} from '../global/types';
+import React, {use, useCallback, useEffect, useMemo, useState} from 'react';
+import {CommonActions, useNavigation} from '@react-navigation/native';
+import {QuestType, RootStackParams} from '../global/types.ts';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {ScrollView, TextInput} from 'react-native-gesture-handler';
 import {RadioGroup} from 'react-native-radio-buttons-group';
-import {
-  SafeAreaInsetsContext,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import {Slider} from '@react-native-assets/slider';
+import {colors} from '../global/colors.ts';
+import uuid from 'react-native-uuid';
+import {storage} from '../global/mmkv.ts';
 
 export default function QuestCreatorModal({route}: any) {
   const navigation = useNavigation<StackNavigationProp<RootStackParams>>();
@@ -30,9 +26,7 @@ export default function QuestCreatorModal({route}: any) {
   const [questName, setQuestName] = useState('');
   const [questPriority, setQuestPriority] = useState('');
   const [questDescription, setQuestDescription] = useState('');
-  const [questType, setQuestType] = useState('');
-
-  const [questUnits, setQuestUnits] = useState('');
+  const [questGoal, setQuestGoal] = useState<number>(1);
 
   const questPriorityRadio = useMemo(
     () => [
@@ -49,56 +43,12 @@ export default function QuestCreatorModal({route}: any) {
     ],
     [],
   );
-
-  const questProgression = useMemo(
-    () => [
-      {
-        id: '1',
-        label: 'Progressive (Add progression over the day)',
-        value: 'numerical',
-      },
-      {
-        id: '2',
-        label: 'Singular (Complete once during day)',
-        value: 'boolean',
-      },
-    ],
-    [],
-  );
-
-  const questUnitRadio = useMemo(
-    () => [
-      {
-        id: '1',
-        label: 'hours',
-        value: 'hours',
-      },
-      {
-        id: '2',
-        label: 'minutes',
-        value: 'minutes',
-      },
-      {
-        id: '3',
-        label: 'liters',
-        value: 'liters',
-      },
-
-      {
-        id: '4',
-        label: 'weight',
-        value: 'weight',
-      },
-      {
-        id: '5',
-        label: 'general',
-        value: 'general',
-      },
-    ],
-    [],
-  );
+  useEffect(() => {
+    console.log('goal: ' + questGoal);
+  }, [questGoal]);
 
   const addQuest = useCallback(() => {
+    console.log('goal: ' + questGoal);
     const resetAction = CommonActions.reset({
       index: 1,
       routes: [
@@ -108,10 +58,12 @@ export default function QuestCreatorModal({route}: any) {
             newQuests: [
               ...(route.params?.quests as QuestType[]),
               {
+                id: uuid.v4(),
                 name: questName,
                 description: questDescription,
                 priority: questPriority,
-                goal: 1,
+                goal: questGoal,
+                progress: 0,
               },
             ],
           },
@@ -119,41 +71,31 @@ export default function QuestCreatorModal({route}: any) {
       ],
     });
 
-    navigation.dispatch(resetAction);
-  }, [questName, questDescription, questPriority, route.params]);
-
-  const renderUnits = () => {
-    if (questType !== '1') return null;
-    return (
-      <View>
-        <Text>Select unit measurement type</Text>
-        <RadioGroup
-          containerStyle={{alignItems: 'flex-start'}}
-          labelStyle={styles.radioLabel}
-          radioButtons={questUnitRadio}
-          onPress={setQuestUnits}
-          selectedId={questUnits}
-        />
-      </View>
+    storage.set(
+      'quests',
+      JSON.stringify([
+        ...(route.params?.quests as QuestType[]),
+        {
+          id: uuid.v4(),
+          name: questName,
+          description: questDescription,
+          priority: questPriority,
+          goal: questGoal,
+          progress: 0,
+        },
+      ]),
     );
-  };
 
-  const insets = useSafeAreaInsets();
+    navigation.dispatch(resetAction);
+  }, [questName, questDescription, questPriority, questGoal, route.params]);
 
   return (
     <SafeAreaView style={styles.container}>
       <Pressable style={styles.modalBackground} onPress={navigateBack} />
-      <View
-        style={{
-          height: '80%',
-        }}>
+      <View style={styles.mainContainer}>
         <ScrollView
           style={styles.modal}
-          contentContainerStyle={{
-            gap: 20,
-            paddingVertical: 20,
-            paddingHorizontal: 10,
-          }}>
+          contentContainerStyle={styles.scrollContent}>
           <Text>Add Quest</Text>
           <TextInput
             value={questName}
@@ -178,16 +120,25 @@ export default function QuestCreatorModal({route}: any) {
             multiline
           />
 
-          <Text>Quest progression type</Text>
-          <RadioGroup
-            containerStyle={{alignItems: 'flex-start'}}
-            labelStyle={styles.radioLabel}
-            radioButtons={questProgression}
-            onPress={setQuestType}
-            selectedId={questType}
-          />
-
-          {renderUnits()}
+          <Text>Weekly goal</Text>
+          <View style={styles.sliderContainer}>
+            <Slider
+              value={questGoal}
+              onValueChange={setQuestGoal}
+              style={styles.slider}
+              minimumValue={1}
+              maximumValue={24}
+              step={1}
+              minimumTrackTintColor={
+                questPriority === '1' ? colors.accent : colors.soft
+              }
+              maximumTrackTintColor={colors.lightText}
+              thumbTintColor={
+                questPriority === '1' ? colors.accent : colors.soft
+              }
+            />
+            <Text>{questGoal}</Text>
+          </View>
 
           <Pressable onPress={addQuest} style={[styles.addQuest]}>
             <Text style={{color: 'white', fontSize: 18}}>Add Quest</Text>
@@ -208,7 +159,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalBackground: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.transparentBlack,
     position: 'absolute',
     width: screenWidth,
     height: screenHeight,
@@ -216,25 +167,35 @@ const styles = StyleSheet.create({
   },
   modal: {
     width: screenWidth - 40,
-    backgroundColor: 'white',
+    backgroundColor: colors.bg,
     borderRadius: 10,
   },
   input: {
     padding: 10,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: 'lightgray',
+    borderColor: colors.lightText,
     textAlignVertical: 'top',
   },
-  radioLabel: {color: 'gray'},
+  radioLabel: {color: colors.lightText},
   addQuest: {
     alignSelf: 'center',
     width: '90%',
-    backgroundColor: 'green',
+    backgroundColor: colors.contrast,
     padding: 20,
     borderRadius: 10,
     gap: 20,
     alignItems: 'center',
     overflow: 'hidden',
   },
+  scrollContent: {
+    gap: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+  },
+  mainContainer: {
+    height: '80%',
+  },
+  slider: {width: 300},
+  sliderContainer: {alignSelf: 'center', gap: 10, flexDirection: 'row'},
 });

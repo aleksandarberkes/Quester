@@ -6,7 +6,7 @@ import {createStackNavigator} from '@react-navigation/stack';
 import QuestsDisplay from './src/screens/QuestsDisplay';
 import QuestModal from './src/screens/QuestModal';
 import QuestCreatorModal from './src/screens/QuestCreatorModal';
-import {RootStackParams} from './src/global/types';
+import {RootStackParams} from './src/global/types.ts';
 
 export default function App() {
   const Stack = createStackNavigator<RootStackParams>();

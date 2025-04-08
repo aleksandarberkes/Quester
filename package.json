@@ -7,18 +7,22 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "pod-install": "cd ios && RCT_NEW_ARCH_ENABLED=1 bundle exec pod install"
   },
   "dependencies": {
+    "@react-native-assets/slider": "^10.0.2",
     "@react-native-community/checkbox": "^0.5.17",
     "@react-navigation/native": "^7.0.19",
     "@react-navigation/stack": "^7.2.3",
     "react": "19.0.0",
     "react-native": "0.78.1",
     "react-native-gesture-handler": "^2.25.0",
+    "react-native-mmkv": "^3.2.0",
     "react-native-radio-buttons-group": "^3.1.0",
     "react-native-safe-area-context": "^5.3.0",
-    "react-native-screens": "^4.10.0"
+    "react-native-screens": "^4.10.0",
+    "react-native-uuid": "^2.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
